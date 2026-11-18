@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>XSS Marks the Spot &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../assets/chall.css"><script src="../../assets/nxt.js"></script><script>const BOT=new URLSearchParams(location.search).has('bot');
+const BK='nxt26_xss_book',WELCOME=[['admin','welcome to your guestbook! be nice \u{1F642}']];
+function getBook(){try{const b=JSON.parse(localStorage.getItem(BK));if(Array.isArray(b))return b;}catch(e){}return WELCOME.slice();}
+function setBook(b){try{localStorage.setItem(BK,JSON.stringify(b.slice(-40)));}catch(e){}}
+function addPost(author,m){const b=getBook();b.push([author,String(m==null?'':m).slice(0,2000)]);setBook(b);}
+// the admin bot's browser: it holds the flag in a cookie
+if(BOT){const c='admin='+NXT.reveal("IAAgVkpDQWkDGQZGQW9GXgsnB11dRE8=");try{Object.defineProperty(document,'cookie',{get:()=>c,set:()=>{},configurable:true});}catch(e){}}
+// the "server": POST <guestbook>/post adds a message, signed by whoever's browser sent it
+const _fetch=window.fetch.bind(window);
+window.fetch=function(u,o){try{const url=new URL(String(u&&u.url?u.url:u),location.href),m=String((o&&o.method)||(u&&u.method)||'GET').toUpperCase();
+if(url.origin===location.origin&&/\/post\/?$/.test(url.pathname)&&m==='POST'){const b=o&&o.body;let msg='';
+if(b instanceof URLSearchParams||b instanceof FormData)msg=b.get('m')??'';else if(typeof b==='string'){const ps=new URLSearchParams(b);msg=ps.has('m')?ps.get('m'):b;}
+if(String(msg).trim())addPost(BOT?'admin':'you',msg);return Promise.resolve(new Response('{"ok":true}',{headers:{'Content-Type':'application/json'}}));}}catch(e){}
+return _fetch(u,o);};
+function reply(text){text=String(text==null?'':text);if(!text.trim())return Promise.resolve();var b=new URLSearchParams();b.set('m',text);return fetch('post',{method:'POST',body:b});}
+</script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../">&larr; back to the board</a></div><main><h1>XSS Marks the Spot</h1>
+<p>This guestbook shows your messages as raw HTML. The admin's browser holds the flag in a cookie. Post something, then press <b>report to admin</b>: the admin opens your guestbook in a real browser. Make the admin's browser post its cookie back here.</p>
+<div class="banner" id="wait" hidden></div>
+<form class="mini" id="f"><label for="m">sign the guestbook</label><textarea id="m" rows="3" spellcheck="false" placeholder="&lt;b&gt;hi&lt;/b&gt; nxt fam"></textarea>
+<div class="row"><button class="btn">post</button><button type="button" id="report" class="ghost">report to admin</button><button type="button" id="clear" class="ghost">clear guestbook</button></div>
+<span class="mono muted">your private guestbook lives in this browser. the admin is a hidden browser tab on this page.</span></form>
+<div class="book" id="book"></div></main><script>const LR='nxt26_xss_report';
+function render(){const book=document.getElementById('book');book.textContent='';
+for(const [a,m] of getBook()){const d=document.createElement('div');d.className='post'+(a==='system'?' sys':'');const b=document.createElement('b');b.textContent=a;
+const c=document.createElement('div');d.append(b,c);book.append(d);try{c.append(document.createRange().createContextualFragment(m));}catch(e){c.textContent=m;}}}   // m is NOT escaped: the bug
+if(BOT){document.querySelector('.top').remove();}
+render();
+document.getElementById('f').addEventListener('submit',e=>{e.preventDefault();const t=document.getElementById('m');if(!t.value.trim())return;addPost('you',t.value);location.reload();});
+document.getElementById('clear').onclick=()=>{try{localStorage.removeItem(BK);}catch(e){}location.reload();};
+document.getElementById('report').onclick=()=>{if(BOT)return;let last=0;try{last=+localStorage.getItem(LR)||0;}catch(e){}
+const w=document.getElementById('wait');w.hidden=false;if(Date.now()-last<10000){w.textContent='\u{1F916} the admin already has your guestbook open. give it a few seconds.';return;}
+try{localStorage.setItem(LR,String(Date.now()));}catch(e){}
+let n=8;const tick=()=>{w.textContent='\u{1F916} the admin is reading your guestbook... this page refreshes by itself in '+n+'s';};tick();
+const fr=document.createElement('iframe');fr.src=location.pathname+'?bot=1';fr.setAttribute('aria-hidden','true');fr.tabIndex=-1;
+fr.style.cssText='position:fixed;left:-10000px;top:0;width:800px;height:600px;border:0;';document.body.append(fr);
+const t=setInterval(()=>{n--;tick();if(n===3){addPost('system','\u{1F440} the admin read your guestbook. if your script replied, the admin\'s message is just above this.');fr.remove();}
+if(n<=0){clearInterval(t);location.reload();}},1000);};</script></body></html>

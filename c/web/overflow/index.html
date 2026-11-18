@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Too Many Bytes, Bestie &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../../assets/chall.css"><script src="../../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../../">&larr; back to the board</a></div><main><h1>Too Many Bytes, Bestie</h1>
+<p>This login program stores your name in a 16-byte box. Right after it in memory sits one byte called <code>is_admin</code>. The dev used <code>gets()</code>, which copies <i>everything</i> you type.</p>
+<pre class="blob">struct user {
+  char name[16];   // 16 bytes
+  char is_admin;   // 0 = nope, anything else = admin
+};
+gets(u.name);      // reads as much as you type. what could go wrong</pre>
+<div class="mini"><label for="name">enter your name</label><input id="name" autocomplete="off" spellcheck="false" placeholder="dave">
+<div class="mem" id="mem"></div><div class="row"><button class="btn" id="go">log in</button><span class="mono" id="out"></span></div></div></main><script>const inp=document.getElementById('name'),mem=document.getElementById('mem');
+function draw(){const v=inp.value;mem.textContent='';for(let i=0;i<17;i++){const c=document.createElement('span');c.className='cell'+(i==16?' admin':'')+(i<v.length?' used':'');
+const b=document.createElement('b');b.textContent=i<v.length?(i==16?v.charCodeAt(16):v[i]):(i==16?'0':'·');const s=document.createElement('small');s.textContent=i==16?'is_admin':'name['+i+']';c.append(b,s);mem.append(c);}
+if(v.length>17){const x=document.createElement('span');x.className='spill';x.textContent='+'+(v.length-17)+' more bytes spilling over';mem.append(x);}}
+inp.addEventListener('input',draw);draw();
+// the "server": copies your name into a 64-byte stack frame with no bounds check, like gets()
+function login(name){name=name.slice(0,64);const memory=new Uint8Array(64);for(let i=0;i<name.length;i++){const c=name.charCodeAt(i);memory[i]=c>255?63:c;}
+const is_admin=memory[16];if(is_admin)return 'is_admin = '+is_admin+'. welcome, admin! '+NXT.reveal("IAAgVkZfXWkDGRpUbVJLQgsLK09XQ0ZfCwU=");return 'hi '+(name||'nobody')+'. is_admin = 0. access denied.';}
+document.getElementById('go').onclick=()=>{document.getElementById('out').textContent=login(inp.value);};</script></body></html>

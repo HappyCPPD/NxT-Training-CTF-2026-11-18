@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Writeups · NxT CTF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap">
+<style>
+:root{--void:#08070a;--panel:#100e14;--panel-2:#17141c;--wire:#272231;--wire-strong:#3a3348;--ink:#f2f0f4;--ink-2:#b7b2bf;--ink-3:#847e92;--sig:#e6293f;--sig-hot:#ff4257;--amber:#f0a830;--phos:#3ddc84;
+--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;--sans:"Space Grotesk",system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:70px}
+body{margin:0;background:var(--void);color:var(--ink-2);font-family:var(--sans);font-size:16px;line-height:1.65}
+.top{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:700;color:var(--ink);border-bottom:1px solid var(--wire);padding:14px 20px;position:sticky;top:0;background:rgba(8,7,10,.94);backdrop-filter:blur(6px);z-index:2}
+.top a{margin-left:auto;color:var(--ink-2);text-decoration:none;font-weight:400;font-size:13px}
+main{max-width:780px;margin:0 auto;padding:36px 20px 90px;overflow-wrap:anywhere}
+h1{font-family:var(--mono);color:var(--ink);font-size:1.9rem;border-top:2px solid var(--sig);padding-top:18px;margin:0 0 12px}
+h2{font-family:var(--mono);color:var(--amber);font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin:44px 0 0}
+h3{font-family:var(--mono);color:var(--ink);font-size:1.15rem;margin:30px 0 8px}
+h3:target{color:var(--sig-hot)}
+strong{color:var(--ink)}a{color:var(--sig-hot)}
+code{font-family:var(--mono);font-size:.88em;background:var(--panel-2);border:1px solid var(--wire);padding:1px 6px;border-radius:4px;color:var(--ink)}
+pre{background:#050406;border:1px solid var(--wire);border-radius:4px;padding:12px 14px;overflow-x:auto}pre code{background:none;border:0;padding:0}
+blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--amber);background:rgba(240,168,48,.06);border-radius:0 4px 4px 0}blockquote p{margin:0}
+hr{border:0;border-top:1px solid var(--wire);margin:36px 0}
+table{border-collapse:collapse;display:block;overflow-x:auto}td,th{border:1px solid var(--wire);padding:6px 10px;text-align:left}th{color:var(--ink)}
+@media (max-width:600px){main{padding:28px 16px 70px}}
+</style>
+</head>
+<body>
+<div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../">&larr; back to the board</a></div>
+<main>
+<h1>NxT CTF: Writeups</h1>
+<p>How every challenge works, how to solve it, and the real-world lesson behind it. 31 challenges, 2750 points.</p>
+<p><strong>Quick tools:</strong> <a href="https://gchq.github.io/CyberChef/">CyberChef</a> for decoding, <a href="https://www.dcode.fr/en">dCode</a> for ciphers, <a href="https://crackstation.net/">CrackStation</a> for hashes, your browser's DevTools (F12), and on Linux/WSL: <code>strings</code>, <code>file</code>, <code>exiftool</code>, <code>git</code>.</p>
+<blockquote>
+<p><strong>About this replay.</strong> Everything runs in your browser. The challenges that needed a server on the night are rebuilt to work the same way: the SQL injection runs on a real SQLite engine (WebAssembly), the XSS admin bot is a hidden browser frame on the page, and the command injection runs on a small simulated shell.</p>
+</blockquote>
+<hr />
+<h2 id="warmup">warmup</h2>
+<h3 id="hello-there">Hello There (50)</h3>
+<p>The flag is printed in the challenge. Copy it, braces included.</p>
+<p><strong>Flag:</strong> <code>NxT{nxt_says_hello_there}</code></p>
+<p><strong>Lesson:</strong> flags always look like <code>NxT{...}</code>. On the night these 50 points were your hint money, since hints cost points. In the replay hints are free.</p>
+<hr />
+<h2 id="crypto">crypto</h2>
+<h3 id="group-chat-leak">Group Chat Leak (50)</h3>
+<p>Theo sent Jules <code>TnhUe25vX2NhcF90aGlzX2lzX2Jhc2U2NH0=</code>. It's not a password, it's <strong>Base64</strong>: only letters, digits, <code>+</code> and <code>/</code>, often ending in <code>=</code>. Put it through CyberChef <strong>From Base64</strong>.</p>
+<p><strong>Flag:</strong> <code>NxT{no_cap_this_is_base64}</code></p>
+<p><strong>Lesson:</strong> encoding is not encryption. Anyone can decode Base64, with no key needed. Pro tip: Base64 that starts with <code>TnhUe</code> decodes to <code>NxT{</code>, so learn to spot it.</p>
+<h3 id="caesar-salad">Caesar Salad (50)</h3>
+<p><code>AkG{irav_ivqv_ebg13}</code>. Every letter is shifted by the same amount. <code>A → N</code> is a shift of 13, so this is <strong>ROT13</strong>. Drag the decoder ring to 13, or use CyberChef <strong>ROT13</strong>.</p>
+<p><strong>Flag:</strong> <code>NxT{veni_vidi_rot13}</code></p>
+<p><strong>Lesson:</strong> a Caesar cipher has only 26 possible keys, so you can just try them all (brute force).</p>
+<h3 id="uno-reverse-card">Uno Reverse Card (50)</h3>
+<p><code>}drac_esrever_onu{TxN</code> is just the flag written backwards. Read it right to left, or CyberChef <strong>Reverse</strong>.</p>
+<p><strong>Flag:</strong> <code>NxT{uno_reverse_card}</code></p>
+<p><strong>Lesson:</strong> obfuscation isn't security.</p>
+<h3 id="emoji-movie">Emoji Movie (75)</h3>
+<p>Each emoji is one letter (a <strong>substitution cipher</strong>), and the cheat sheet is the key. Swap each emoji for its letter. Underscores stay underscores.</p>
+<p><strong>Flag:</strong> <code>NxT{no_thoughts_just_vibes}</code></p>
+<p><strong>Lesson:</strong> with the key, any substitution cipher is readable. Without it, you'd use letter frequency (E, T, A are most common in English).</p>
+<h3 id="beep-boop">Beep Boop (75)</h3>
+<p><code>transmission.wav</code> is <strong>Morse code</strong>: short beep = dot, long beep = dash. Upload it to an online Morse audio decoder, or decode the blinking lamp by hand:</p>
+<p><code>... . -. -.. / -- --- .-. . / -- . -- . ...</code> = <strong>send more memes</strong></p>
+<p><strong>Flag:</strong> <code>NxT{send_more_memes}</code></p>
+<p><strong>Lesson:</strong> Morse is just another alphabet, and decoding audio is a real forensics skill.</p>
+<h3 id="all-i-see-is">All I See Is ******* (100)</h3>
+<p><code>2ab96390c7dbe3439de74d0c9b0b1767</code> is an <strong>MD5 hash</strong>. Hashes can't be reversed, but common passwords have already been hashed and stored in huge lookup tables. Paste it into CrackStation: <strong>hunter2</strong>. (Yes, it's the classic old chat-room joke where someone's password "shows up as stars".)</p>
+<p><strong>Flag:</strong> <code>NxT{hunter2}</code></p>
+<p><strong>Lesson:</strong> unsalted MD5 is broken for passwords. Real sites use slow, salted hashes like bcrypt or argon2.</p>
+<hr />
+<h2 id="web">web</h2>
+<h3 id="ctrl-u-moment">Ctrl+U Moment (50)</h3>
+<p>Right-click the page, <strong>View Page Source</strong> (Ctrl+U). There's an HTML comment the page never displays:</p>
+<p><code>&lt;!-- TODO: delete before launch lol NxT{source_code_go_brrr}  --&gt;</code></p>
+<p><strong>Flag:</strong> <code>NxT{source_code_go_brrr}</code></p>
+<p><strong>Lesson:</strong> never put secrets in HTML. Everything the server sends you, you can read.</p>
+<h3 id="you-shall-not-pass">You Shall Not Pass (75)</h3>
+<p>The button has the HTML attribute <code>disabled</code>. Right-click it, <strong>Inspect</strong>, delete <code>disabled</code>, then click. The "server" hands over the flag. On the night you didn't even need the button: <code>curl -X POST &lt;url&gt;/c/web/button/open</code> worked too.</p>
+<p><strong>Flag:</strong> <code>NxT{trust_me_im_the_client}</code></p>
+<p><strong>Lesson:</strong> a disabled button is not access control. The server must check permissions itself.</p>
+<h3 id="press-f12-to-pay-respects">Press F12 to Pay Respects (50)</h3>
+<p>Open DevTools (F12), go to the <strong>Console</strong> tab, and reload. The dev's "dear diary" logs the flag.</p>
+<p><strong>Flag:</strong> <code>NxT{f12_to_pay_respects}</code></p>
+<p><strong>Lesson:</strong> debug logs left in production leak secrets.</p>
+<h3 id="it-s-over-9000">It's Over 9000 (100)</h3>
+<p>The page saves your "game" in the browser. DevTools, then <strong>Application</strong> (Storage in Firefox), then <strong>Local Storage</strong>, then the key <code>nxt_save</code>. The flag is in the JSON.</p>
+<p><strong>Flag:</strong> <code>NxT{its_over_9000}</code></p>
+<p><strong>Lesson:</strong> browser storage is fully readable and editable by the user. Never keep secrets or trusted data there.</p>
+<h3 id="bobby-tables-revenge">Bobby Tables' Revenge (100)</h3>
+<p>The login builds SQL by gluing your input into the query:</p>
+<pre><code class="language-sql">SELECT username, role FROM users WHERE username = '&lt;you&gt;' AND password = '&lt;you&gt;'
+</code></pre>
+<p>Username <code>admin' --</code> turns it into:</p>
+<pre><code class="language-sql">... WHERE username = 'admin' --' AND password = '...'
+</code></pre>
+<p>The <code>'</code> closes the string early and <code>--</code> comments out the password check. <code>' OR 1=1 --</code> also works (it logs you in as the first user, who is admin). Typing just <code>'</code> gives an SQL error, which is the clue that your input reaches the query.</p>
+<p><strong>Flag:</strong> <code>NxT{or_1_equals_1_lol}</code></p>
+<p><strong>Lesson:</strong> <strong>SQL injection.</strong> The fix is parameterized queries, where input is never glued into SQL text.</p>
+<h3 id="xss-marks-the-spot">XSS Marks the Spot (150)</h3>
+<p>Your guestbook renders messages as raw HTML, so any <code>&lt;script&gt;</code> you post runs in the browser of whoever views it. The admin bot holds the flag in a cookie and opens your guestbook when you report it.</p>
+<p>Reading <code>document.cookie</code> isn't enough: your script must <strong>send it back</strong>. Use the hidden helper:</p>
+<pre><code class="language-html">&lt;script&gt;reply(document.cookie)&lt;/script&gt;
+</code></pre>
+<p>or the manual version:</p>
+<pre><code class="language-html">&lt;script&gt;fetch('post',{method:'POST',body:new URLSearchParams({m:document.cookie})})&lt;/script&gt;
+</code></pre>
+<p>Report to admin, wait for the refresh, and the admin's message <code>admin=NxT{...}</code> appears.</p>
+<p><strong>Flag:</strong> <code>NxT{xss_marks_the_spot}</code></p>
+<p><strong>Lesson:</strong> <strong>cross-site scripting.</strong> User input rendered as HTML lets attackers run code in other people's browsers and steal their sessions. The fix is to escape output (and use HttpOnly cookies).</p>
+<hr />
+<h2 id="pwn">pwn</h2>
+<h3 id="too-many-bytes-bestie">Too Many Bytes, Bestie (100)</h3>
+<p><code>name</code> is 16 bytes and <code>is_admin</code> is the very next byte. <code>gets()</code> copies everything you type. A 17-character name like <code>AAAAAAAAAAAAAAAAB</code> spills its 17th byte into <code>is_admin</code> (<code>B</code> = 66, which isn't 0), so you're admin.</p>
+<p><strong>Flag:</strong> <code>NxT{too_many_bytes_bestie}</code></p>
+<p><strong>Lesson:</strong> <strong>buffer overflow.</strong> Writing past a buffer overwrites what's next to it. That's why <code>gets()</code> is banned in modern C.</p>
+<h3 id="infinite-money-glitch">Infinite Money Glitch (75)</h3>
+<p>The shop only checks <code>cost &gt; coins</code>. Buy <strong>-100000</strong> stickers: cost = -100000 × 10 = -1,000,000, so the shop <em>adds</em> a million coins. Then buy the flag.</p>
+<p><strong>Flag:</strong> <code>NxT{infinite_money_glitch}</code></p>
+<p><strong>Lesson:</strong> validate every input on the server, including "impossible" values like negatives.</p>
+<h3 id="shell-yeah">Shell Yeah (100)</h3>
+<p>The server runs <code>ping -c 1 &lt;your input&gt;</code> in a real shell. <code>;</code> ends one command and starts the next:</p>
+<pre><code>8.8.8.8; ls
+8.8.8.8; cat flag.txt
+</code></pre>
+<p><strong>Flag:</strong> <code>NxT{shell_yeah}</code></p>
+<p><strong>Lesson:</strong> <strong>command injection.</strong> Never pass user input to a shell. (Tonight's container was read-only with no network, so nobody could break anything.)</p>
+<hr />
+<h2 id="rev">rev</h2>
+<h3 id="read-the-code-luke">Read the Code, Luke (75)</h3>
+<p>The checker compares your input to a list of numbers. Those are <strong>ASCII codes</strong>: 78 = N, 120 = x, 84 = T, 123 = {... CyberChef <strong>From Decimal</strong> (comma delimiter) turns the whole list back into text.</p>
+<p><strong>Flag:</strong> <code>NxT{read_the_code_luke}</code></p>
+<p><strong>Lesson:</strong> reverse engineering is reading what the code does and working backwards.</p>
+<h3 id="no-strings-attached">No Strings Attached (75)</h3>
+<p><code>vault</code> is a compiled Linux program, but programs keep their text readable inside the binary:</p>
+<pre><code class="language-bash">strings vault | grep NxT
+</code></pre>
+<p>(You'd also spot the password, <code>correct horse</code>, the same way.)</p>
+<p><strong>Flag:</strong> <code>NxT{strings_attached}</code></p>
+<p><strong>Lesson:</strong> <code>strings</code> is usually the very first move on an unknown binary.</p>
+<h3 id="math-is-mathing">Math Is Mathing (75)</h3>
+<p><code>pin * 3 + 7 == 2026</code>. Undo each step in reverse order: 2026 - 7 = 2019, then 2019 ÷ 3 = <strong>673</strong>.</p>
+<p><strong>Flag:</strong> <code>NxT{math_is_mathing}</code></p>
+<p><strong>Lesson:</strong> to find the input a program wants, invert its logic.</p>
+<hr />
+<h2 id="forensics">forensics</h2>
+<h3 id="kinda-sus">Kinda Sus (50)</h3>
+<p>The "empty" space has text the same color as the background. Highlight it with your mouse (or Ctrl+A).</p>
+<p><strong>Flag:</strong> <code>NxT{that_text_is_kinda_sus}</code></p>
+<p><strong>Lesson:</strong> what's on screen isn't everything that's on the page.</p>
+<h3 id="is-this-a-png">Is This a PNG? (75)</h3>
+<p>Three files called <code>.docx</code>, but extensions lie. The first bytes (<strong>magic bytes</strong>) tell the truth:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>First bytes</th>
+<th>Really</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>homework_1</td>
+<td><code>89 50 4E 47</code> (<code>.PNG</code>)</td>
+<td>PNG</td>
+</tr>
+<tr>
+<td>homework_2</td>
+<td><code>25 50 44 46</code> (<code>%PDF</code>)</td>
+<td>PDF</td>
+</tr>
+<tr>
+<td>homework_3</td>
+<td><code>50 4B 03 04</code> (<code>PK</code>)</td>
+<td>ZIP</td>
+</tr>
+</tbody>
+</table>
+<p>On Linux, <code>file homework_*</code> tells you instantly. The ZIP's README explains the format.</p>
+<p><strong>Flag:</strong> <code>NxT{png_pdf_zip}</code></p>
+<p><strong>Lesson:</strong> never trust file extensions.</p>
+<h3 id="zoom-and-enhance">Zoom and Enhance (125)</h3>
+<p>The flag is written just 2 shades brighter than the darkest part of the photo, invisible to the eye. Stretch the dark tones: <strong>shadows ~6, highlights ~14</strong>, then zoom into the lower right. (GIMP Levels or StegSolve work too.)</p>
+<p><strong>Flag:</strong> <code>NxT{nicholaus_chicken_feet}</code></p>
+<p><strong>Lesson:</strong> images can hide data in tiny differences your eye can't see.</p>
+<h3 id="mirror-mirror">Mirror Mirror (100)</h3>
+<p>The webcam's mirror filter makes the right half an exact reflection of the left, except where the flag was added at +/-3 brightness on the right half. Subtract the photo from its own horizontal flip: everything cancels to black except the flag (it shows up twice, once mirrored). GIMP: duplicate layer, Flip Horizontally, layer mode <strong>Difference</strong>, then Levels with the white point at 3. Python: <code>ImageChops.difference(img, img.transpose(Image.FLIP_LEFT_RIGHT))</code>.</p>
+<p><strong>Flag:</strong> <code>NxT{mirror_mirror_on_the_wall}</code></p>
+<p><strong>Lesson:</strong> "almost identical" is a signal. Diffing against what something <em>should</em> be (a reflection, a previous version, a known-good file) finds tampering.</p>
+<h3 id="two-faced">Two-Faced (125)</h3>
+<p>Visual cryptography. The left half's bit plane 0 is a random key; the right half's bit plane 0 is key XOR flag. Each one alone is perfect static (a one-time pad). Crop the halves (x 0-399 and 400-799), XOR them (StegSolve Image Combiner, or Python), and the flag appears in plane 0.</p>
+<p><strong>Flag:</strong> <code>NxT{two_halves_one_secret}</code></p>
+<p><strong>Lesson:</strong> a one-time pad is unbreakable alone, but the key and ciphertext together give everything away. Secret sharing splits a secret so no single piece leaks anything.</p>
+<h3 id="going-in-circles">Going in Circles (150)</h3>
+<p>StegSolve Blue plane 0 shows a ring around the centre star with two tracks. The outer track ticks on/off to mark 208 slots; the inner track is the data, one bit per slot. Read clockwise from 12 o'clock, white = 1, black = 0, group into bytes (CyberChef From Binary).</p>
+<p><strong>Flag:</strong> <code>NxT{round_and_round_we_go}</code></p>
+<p><strong>Lesson:</strong> LSB stego doesn't have to be row-by-row. Tools like zsteg only scan in raster order, so a circular layout slips past them; sometimes you have to look at the plane and work out the layout yourself. The timing track is the same idea as clock lines in QR codes and barcodes.</p>
+<hr />
+<h2 id="osint">osint</h2>
+<h3 id="overshare">Overshare (125)</h3>
+<p>Omar posts everything. Put the pieces together:</p>
+<ol>
+<li><strong>The terminal screenshot</strong> (open it full size): <code>PASSWORD IS MOCHI + MOCHI BIRTHDAY + MY BIRTHDAY</code></li>
+<li><strong>Which cat is Mochi?</strong> The grey fluffy one. Mia's comment names him on his "2nd birthday" post, dated <strong>June 3, 2025</strong>, so he was born <strong>03/06/2023</strong>. (Hoshi's birthday and Maro vs Taro are decoys.)</li>
+<li><strong>Omar's birthday:</strong> the "28 today!!" cake post is dated <strong>March 14, 2026</strong>, so he was born <strong>14/03/1998</strong>. (Mom's birthday is a decoy.)</li>
+<li>The portal says dates are DDMMYYYY. Log in as <code>omar</code> / <code>mochi0306202314031998</code>.</li>
+</ol>
+<p><strong>Flag:</strong> <code>NxT{dont_overshare_online}</code></p>
+<p><strong>Lesson:</strong> people leak their passwords through posts, photos and comments. Don't build passwords from personal facts, and check your screenshots before posting.</p>
+<h3 id="pin-drop">Pin Drop (50)</h3>
+<p>Paste <code>48.8584, 2.2945</code> into Google Maps: the <strong>Eiffel Tower</strong>.</p>
+<p><strong>Flag:</strong> <code>NxT{eiffel_tower}</code></p>
+<h3 id="pics-or-it-didn-t-happen">Pics or It Didn't Happen (75)</h3>
+<p>Photos carry <strong>EXIF metadata</strong>. <code>exiftool kyle_vacation.jpg</code> (or any online EXIF viewer) shows <code>GPS Position: 1.2834 N, 103.8607 E</code>, which is Marina Bay Sands, <strong>Singapore</strong>.</p>
+<p><strong>Flag:</strong> <code>NxT{singapore}</code></p>
+<p><strong>Lesson:</strong> strip location data before posting photos.</p>
+<h3 id="git-never-forgets">Git Never Forgets (75)</h3>
+<p>Unzip <code>weather-bot.zip</code> and look at the history:</p>
+<pre><code class="language-bash">git log --oneline
+git show &lt;the &quot;OH NO remove api key&quot; commit&gt;
+</code></pre>
+<p>The red <code>-</code> line shows the key that was "deleted".</p>
+<p><strong>Flag:</strong> <code>NxT{git_never_forgets}</code></p>
+<p><strong>Lesson:</strong> removing a secret in a new commit doesn't remove it from history. Rotate any key that was ever committed.</p>
+<h3 id="where-in-the-world-is-kyle">Where in the World Is Kyle? (75)</h3>
+<p>No metadata this time. Reverse image search it (right-click, <strong>Search image with Google</strong> / Google Lens, or TinEye). It's <strong>Hallgrímskirkja</strong>, the rocket-shaped church in <strong>Reykjavík</strong>, Iceland.</p>
+<p><strong>Flag:</strong> <code>NxT{reykjavik}</code></p>
+<p><strong>Lesson:</strong> geolocation is usually reverse image search plus one follow-up search.</p>
+<hr />
+<h2 id="boss">boss</h2>
+<h3 id="i-am-inevitable">I Am Inevitable (250)</h3>
+<p>One challenge, six stages, one per category. Each stage gives you the address of the next.</p>
+<ol>
+<li><strong>crypto:</strong> the intercepted message is Base64. From Base64 gives scrambled text, and ROT13 on that reveals: <em>"thanos here. the vault is at https://happycppd.github.io/NxT-Training-CTF-2026-11-18/c/web/boss/vault-2972f5 - guests only, unless you know the trick."</em></li>
+<li><strong>web:</strong> the vault sets a cookie <code>vault_role=guest</code>. In DevTools, go to <strong>Application &gt; Cookies</strong>, change it to <code>admin</code> and reload. The admin view links <code>gauntlet_check.py</code> and names the launch console.</li>
+<li><strong>rev:</strong> the script accepts a code when <code>(code ^ 1337) == 2021</code>. XOR undoes itself, so <code>code = 2021 ^ 1337</code> = <strong>732</strong>.</li>
+<li><strong>pwn:</strong> the console stores your callsign in 8 bytes and the next byte is <code>clearance</code>, which must be exactly 90. 90 is ASCII <code>Z</code>, so the callsign is 8 characters then a <code>Z</code>, like <code>AAAAAAAAZ</code>. With code <code>732</code>, it launches and links the gauntlet photo.</li>
+<li><strong>forensics:</strong> <code>exiftool gauntlet-9d41a0.png</code> (or <code>strings</code>) shows the PNG comment: <code>last seen at 40.6892, -74.0445 | final gate: https://happycppd.github.io/NxT-Training-CTF-2026-11-18/c/web/boss/gate-7f4fef</code>.</li>
+<li><strong>osint:</strong> <code>40.6892, -74.0445</code> in Google Maps is the <strong>Statue of Liberty</strong>. Enter it at the final gate.</li>
+</ol>
+<p><strong>Flag:</strong> <code>NxT{six_categories_one_snap}</code></p>
+<p><strong>Lesson:</strong> real attacks chain skills from different areas. One weak link in each layer is all it takes.</p>
+<hr />
+<h2 id="the-one-rule-from-tonight">The one rule from tonight</h2>
+<p><strong>Never trust the client.</strong> HTML, JavaScript, browser storage, form values and "impossible" numbers are all in the user's hands. The server has to check everything.</p>
+<p>Keep practicing: <a href="https://picoctf.org/">picoCTF</a>, <a href="https://tryhackme.com/">TryHackMe</a>, <a href="https://overthewire.org/wargames/">OverTheWire</a>.</p>
+</main>
+</body>
+</html>

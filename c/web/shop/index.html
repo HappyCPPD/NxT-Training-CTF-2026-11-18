@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Infinite Money Glitch &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../../assets/chall.css"><script src="../../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../../">&larr; back to the board</a></div><main><h1>Infinite Money Glitch</h1>
+<p>The NxT merch store sells the flag for one million coins. You have 100. The server only checks that you have <i>enough</i> coins. It never checks what kind of number you sent.</p>
+<div class="mini shop"><div class="row" style="justify-content:space-between"><b class="mono">wallet</b><span class="coins" id="coins"></span></div>
+<div class="item"><span>NxT sticker<small>10 coins each</small></span><input type="number" id="qty" value="1"><button id="buy">buy</button></div>
+<div class="item"><span>The Flag<small>1,000,000 coins</small></span><button class="btn" id="flag">buy flag</button></div>
+<div class="mono" id="out"></div><button id="reset" style="justify-self:start">reset wallet</button></div></main><script>// the "server": your wallet lives in this browser
+const W='nxt26_shop_coins';const get=()=>{try{const v=parseInt(localStorage.getItem(W),10);return isNaN(v)?100:v;}catch(e){return 100;}};
+const put=v=>{try{localStorage.setItem(W,String(v));}catch(e){}};
+function act(action,qty){let coins=get(),msg='';
+if(action==='reset')coins=100;
+else if(action==='buy'){let q=Math.trunc(parseFloat(qty));if(isNaN(q))q=0;q=Math.max(Math.min(q,1e9),-1e9);const cost=q*10;
+ if(q===0)msg='enter a quantity.';else if(cost>coins)msg='that costs '+cost.toLocaleString()+" coins. you're broke.";   // the only check: never validates q > 0
+ else{coins-=cost;msg=q>0?'bought '+q+' sticker(s).':'bought '+q+' stickers?? the store paid YOU '+(-cost).toLocaleString()+' coins.';}}
+else if(action==='flag'){if(coins>=1e6){coins-=1e6;msg='purchased! '+NXT.reveal("IAAgVlteVF8AEQBIbV1dWAsBK0peWUZVBgU=");}else msg='you need 1,000,000 coins. you have '+coins.toLocaleString()+'.';}
+put(coins);return {coins,message:msg};}
+const show=j=>{document.getElementById('coins').textContent=j.coins.toLocaleString()+' coins';document.getElementById('out').textContent=j.message||'';};
+show(act('state'));
+document.getElementById('buy').onclick=()=>show(act('buy',document.getElementById('qty').value));
+document.getElementById('flag').onclick=()=>show(act('flag'));
+document.getElementById('reset').onclick=()=>show(act('reset'));</script></body></html>

@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Math Is Mathing &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../../assets/chall.css"><script src="../../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../../">&larr; back to the board</a></div><main><h1>Math Is Mathing</h1><p>The vault checks your PIN with this code. Work backwards from the math, then type the PIN in.</p>
+<pre class="blob">def unlock(pin):
+    if pin * 3 + 7 == 2026:
+        return give_flag()
+    return "nope"</pre>
+<div class="mini"><div class="row"><input id="pin" inputmode="numeric" maxlength="6" placeholder="PIN" style="max-width:160px;font-size:18px;letter-spacing:.2em;text-align:center">
+<button class="btn" id="go">unlock</button></div><div class="mono" id="out"></div></div></main><script>const T={"0ec82b6225cf0f0cbeebe5fd0e022829b964ea268536d1bdad8c662d274d1a15": "TMSaMPMf9LBP/Cq3fcg2f/lS4Qo="};const go=async()=>{const raw=document.getElementById('pin').value.trim(),out=document.getElementById('out');
+if(!/^[+-]?\d+$/.test(raw)){out.textContent="that's not a number.";return;}const n=parseInt(raw,10);
+const f=await NXT.unlock(String(n),T);out.textContent=f?'vault open! '+f:n+' × 3 + 7 = '+(n*3+7)+'. not 2026. nope.';};
+document.getElementById('go').onclick=go;document.getElementById('pin').addEventListener('keydown',e=>{if(e.key==='Enter')go();});</script></body></html>

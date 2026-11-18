@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Beep Boop &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../../assets/chall.css"><script src="../../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../../">&larr; back to the board</a></div><main><h1>Beep Boop</h1>
+<p>A robot on the roof keeps blinking and beeping at us. The intern was supposed to write it down. He didn't. Press play and decode it yourself (turn your sound on).</p>
+<div class="mini"><div class="row"><span class="lamp" id="lamp"></span><button class="btn" id="play">&#9654; receive transmission</button></div>
+<p class="muted">Short flash = dot. Long flash = dash. A longer gap means a new letter, and an even longer one means a new word.</p></div>
+<p>Submit as <code>NxT{word_word_word}</code> in lowercase.</p></main><script>const M={s:'...',e:'.',n:'-.',d:'-..',m:'--',o:'---',r:'.-.'};let busy=false;
+async function play(t){if(busy)return;busy=true;const btn=document.getElementById('play');btn.disabled=true;let ctx=null;try{ctx=new AudioContext();}catch(e){}
+const U=110,w=ms=>new Promise(r=>setTimeout(r,ms)),L=document.getElementById('lamp');
+for(const word of t.split(' ')){for(const ch of word){for(const s of M[ch]){const d=s=='.'?U:U*3;L.classList.add('on');
+if(ctx){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=660;g.gain.value=.12;o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+d/1000);}
+await w(d);L.classList.remove('on');await w(U);}await w(U*2);}await w(U*4);}if(ctx)ctx.close();busy=false;btn.disabled=false;}
+document.getElementById('play').onclick=()=>play(atob('c2VuZCBtb3JlIG1lbWVz'));</script></body></html>

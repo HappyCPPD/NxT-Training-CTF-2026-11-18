@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Gauntlet Launch Console &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../../../assets/chall.css"><script src="../../../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../../../">&larr; back to the board</a></div><main><h1>Gauntlet Launch Console</h1><p class="mono muted">stage 4/6 &middot; pwn</p>
+<p>The gauntlet's launch console. It wants the launch code, then your callsign. The firmware stores your callsign in an 8-byte box, and the very next byte is your <code>clearance</code> level. Only clearance <b>90</b> may launch.</p>
+<pre class="blob">struct console {
+  char callsign[8];   // 8 bytes
+  char clearance;     // must be exactly 90
+};
+gets(c.callsign);     // no length check</pre>
+<form class="mini" id="f"><label>launch code<input id="code" inputmode="numeric" autocomplete="off"></label>
+<label>callsign<input id="cs" autocomplete="off" spellcheck="false" placeholder="gamora"></label>
+<div class="row"><button class="btn">launch</button></div><div class="mono" id="out"></div></form></main><script>const PHOTO='../../static/boss/gauntlet-9d41a0.png';
+function launch(codeRaw,callsign){codeRaw=String(codeRaw).trim();if(!/^[+-]?\d+$/.test(codeRaw))return {message:'launch code must be a number.'};
+if(parseInt(codeRaw,10)!==732)return {message:'DENIED: wrong launch code. (stage 3: what does gauntlet_check.py actually accept?)'};
+callsign=callsign.slice(0,64);const memory=new Uint8Array(32);for(let i=0;i<Math.min(callsign.length,32);i++){const c=callsign.charCodeAt(i);memory[i]=c>255?63:c;}
+const clearance=memory[8];if(clearance===90)return {message:'clearance 90 accepted. LAUNCH. the gauntlet\'s photo:',next:PHOTO};
+if(clearance===0)return {message:'code accepted. hi '+(callsign||'nobody')+'. clearance = 0. launch refused.'};
+return {message:'code accepted. clearance = '+clearance+" ('"+String.fromCharCode(clearance)+"'). launch needs exactly 90."};}
+document.getElementById('f').addEventListener('submit',e=>{e.preventDefault();const j=launch(document.getElementById('code').value,document.getElementById('cs').value);
+const o=document.getElementById('out');o.textContent=j.message;if(j.next){const a=document.createElement('a');a.href=j.next;a.textContent=' ⬇ gauntlet-9d41a0.png';a.style.color='#3ddc84';o.append(a);}});</script></body></html>

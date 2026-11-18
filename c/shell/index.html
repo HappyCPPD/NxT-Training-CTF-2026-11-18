@@ -1,0 +1,147 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Shell Yeah &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../assets/chall.css"><script src="../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../">&larr; back to the board</a></div><main><h1>Shell Yeah</h1>
+<p>The server has a handy ping tool. It runs <code>ping -c 1 &lt;your input&gt;</code> in a Linux shell. In a shell, a semicolon <code>;</code> means &ldquo;and then run this next command.&rdquo;</p>
+<div class="term"><div class="term-out" id="o">$ ping tool v1.0. try: 8.8.8.8</div>
+<form class="term-in" id="f"><span>ping -c 1</span><input id="h" autocomplete="off" spellcheck="false" placeholder="8.8.8.8"></form></div>
+<p class="muted">The server has no internet, so pings fail. That's fine. The ping isn't the interesting part.</p></main><script>
+const FLAGX="IAAgVkFYV1oCJw1IU1hP";
+const FILES={
+ '/srv/ping/flag.txt':()=>NXT.reveal(FLAGX)+'\n',
+ '/srv/ping/ping.sh':'#!/bin/sh\nping -c 1 $1   # TODO: sanitize input lol\n',
+ '/srv/ping/totally_not_secrets.txt':'nice try. the flag is in flag.txt\n',
+ '/app/app.py':'# NxT CTF: Shell Yeah\nimport subprocess\n...\n    p = subprocess.run(f"ping -c 1 -W 1 {host}", shell=True, cwd="/srv/ping",  # vulnerable on purpose\n                       capture_output=True, text=True, timeout=3)\n',
+ '/app/layout.py':'# Shared NxT page shell for challenge pages.\n',
+ '/etc/hostname':'ping-7f3a2c\n',
+ '/etc/os-release':'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"\nNAME="Debian GNU/Linux"\nVERSION_ID="12"\n',
+ '/etc/passwd':'root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n',
+ '/etc/shadow':null,
+};
+const DIRS=new Set(['/','/srv','/srv/ping','/app','/etc','/tmp','/root','/home','/bin','/usr','/proc','/dev']);
+const NOREAD=new Set(['/root','/etc/shadow']);
+const ENV={HOME:'/nonexistent',USER:'nobody',PATH:'/usr/local/bin:/usr/bin:/bin',SHELL:'/bin/sh',HOSTNAME:'ping-7f3a2c',PYTHON_VERSION:'3.12.7'};
+const norm=(p,cwd)=>{const parts=(p.startsWith('/')?p:cwd+'/'+p).split('/');const o=[];for(const s of parts){if(!s||s==='.')continue;if(s==='..')o.pop();else o.push(s);}return '/'+o.join('/');};
+const isDir=p=>DIRS.has(p),isFile=p=>p in FILES;
+const read=p=>{const v=FILES[p];return typeof v==='function'?v():v;};
+const kids=d=>{const pre=d==='/'?'/':d+'/';const s=new Set();for(const p of [...Object.keys(FILES),...DIRS]){if(p!==d&&p.startsWith(pre)){const n=p.slice(pre.length).split('/')[0];if(n)s.add(n);}}return [...s].sort();};
+const sizeOf=p=>isDir(p)?4096:(read(p)||'').length;
+
+function tokenize(src){const toks=[];let w=null,i=0,g=false;const push=()=>{if(w!==null){toks.push({w,g});w=null;g=false;}};
+ while(i<src.length){const c=src[i];
+  if(c==='\\'){w=(w??'')+(src[i+1]??'');i+=2;continue;}
+  if(c==="'"){const j=src.indexOf("'",i+1);if(j<0)throw new Error('Syntax error: Unterminated quoted string');w=(w??'')+src.slice(i+1,j);i=j+1;continue;}
+  if(c==='"'){let j=i+1,s='';while(j<src.length&&src[j]!=='"'){if(src[j]==='\\'&&'"\\$`'.includes(src[j+1])){s+=src[j+1];j+=2;continue;}
+    if(src[j]==='$'){const r=dollar(src,j);s+=r.v;j=r.e;continue;}if(src[j]==='`'){const k=src.indexOf('`',j+1);if(k<0)throw new Error('Syntax error: EOF in backquote substitution');s+=subst(src.slice(j+1,k));j=k+1;continue;}s+=src[j++];}
+    if(j>=src.length)throw new Error('Syntax error: Unterminated quoted string');w=(w??'')+s;i=j+1;continue;}
+  if(c==='$'){const r=dollar(src,i);w=(w??'')+r.v;i=r.e;continue;}
+  if(c==='`'){const k=src.indexOf('`',i+1);if(k<0)throw new Error('Syntax error: EOF in backquote substitution');w=(w??'')+subst(src.slice(i+1,k));i=k+1;continue;}
+  if(c==='#'&&w===null){const k=src.indexOf('\n',i);i=k<0?src.length:k;continue;}
+  if(' \t'.includes(c)){push();i++;continue;}
+  const two=src.slice(i,i+2);
+  if(two==='&&'||two==='||'||two==='>>'||two==='2>'){push();if(two==='2>'&&src[i+2]==='&'){toks.push({op:'2>&'});i+=3;continue;}toks.push({op:two});i+=2;continue;}
+  if(';|&\n<>'.includes(c)){push();toks.push({op:c==='\n'?';':c});i++;continue;}
+  if(c==='*'||c==='?')g=true;w=(w??'')+c;i++;}
+ push();return toks;}
+function glob(w){const k=w.lastIndexOf('/');const dir=k<0?'.':(w.slice(0,k)||'/'),base=w.slice(k+1),pre=k<0?'':w.slice(0,k+1);const d=norm(dir,CWD);
+ if(!isDir(d)||NOREAD.has(d)||!/[*?]/.test(base))return [w];const re=new RegExp('^'+base.replace(/[.+^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'.*').replace(/\?/g,'.')+'$');
+ const m=kids(d).filter(n=>re.test(n)&&(!n.startsWith('.')||base.startsWith('.')));return m.length?m.map(n=>pre+n):[w];}
+let DEPTH=0;
+function dollar(src,i){if(src[i+1]==='('){let d=0,j=i+1;for(;j<src.length;j++){if(src[j]==='(')d++;else if(src[j]===')'&&--d===0)break;}if(j>=src.length)throw new Error('Syntax error: end of file unexpected (expecting ")")');return {v:subst(src.slice(i+2,j)),e:j+1};}
+ if(src[i+1]==='{'){const j=src.indexOf('}',i);const n=src.slice(i+2,j);return {v:ENV[n]??(n==='PWD'?CWD:''),e:j+1};}
+ const m=/^[A-Za-z_][A-Za-z0-9_]*|^[0-9?$#@*]/.exec(src.slice(i+1));if(!m)return {v:'$',e:i+1};const n=m[0];
+ const v=n==='PWD'?CWD:n==='?'?String(LAST):n==='$'?'31':n==='0'?'sh':(ENV[n]??'');return {v,e:i+1+n.length};}
+function subst(cmd){if(++DEPTH>8){DEPTH--;return '';}const r=runLine(cmd);DEPTH--;ERRBUF+=r.err;return r.out.replace(/\n+$/,'').replace(/\s+/g,' ');}
+
+let CWD='/srv/ping',LAST=0,ERRBUF='';
+const ok=(out='')=>({out,err:'',code:0}),fail=(err,code=1)=>({out:'',err,code});
+function lsLong(p,name){const d=isDir(p);const mode=d?'dr-xr-xr-x':'-r--r--r--';const own=p.startsWith('/srv/ping')||p.startsWith('/app')?'root root':'root root';
+ return mode+' 1 '+own+' '+String(sizeOf(p)).padStart(5)+' Nov 13 20:30 '+name;}
+const CMDS={
+ ping(a){const args=[];for(let i=0;i<a.length;i++){if(/^-[cWwisItQ]$/.test(a[i])){i++;continue;}if(a[i].startsWith('-'))continue;args.push(a[i]);}
+  if(!args.length)return fail('ping: usage error: Destination address required\n',1);const h=args[0];
+  if(/^\d{1,3}(\.\d{1,3}){3}$/.test(h))return fail('ping: connect: Network is unreachable\n',2);return fail('ping: '+h+': Temporary failure in name resolution\n',2);},
+ ls(a){let L=false,A=false;const ps=[];for(const x of a){if(/^-[a-zA-Z]+$/.test(x)){if(x.includes('l'))L=true;if(/[aA]/.test(x))A=true;}else ps.push(x);}if(!ps.length)ps.push('.');
+  let out='',err='',code=0;ps.forEach((x,k)=>{const p=norm(x,CWD);
+   if(isFile(p)){out+=(L?lsLong(p,x):x)+'\n';return;}
+   if(!isDir(p)){err+="ls: cannot access '"+x+"': No such file or directory\n";code=2;return;}
+   if(NOREAD.has(p)){err+="ls: cannot open directory '"+x+"': Permission denied\n";code=2;return;}
+   if(ps.length>1)out+=(k?'\n':'')+x+':\n';let names=kids(p);if(A)names=['.','..',...names];
+   if(L){out+='total '+(names.length*4)+'\n'+names.map(n=>lsLong(n==='.'||n==='..'?p:norm(n,p),n)).join('\n')+(names.length?'\n':'');}else out+=names.join('  ')+(names.length?'\n':'');});
+  return {out,err,code};},
+ cat(a,stdin){if(!a.length||(a.length===1&&a[0]==='-'))return ok(stdin);let out='',err='',code=0;
+  for(const x of a){const p=norm(x,CWD);if(isDir(p)){err+='cat: '+x+': Is a directory\n';code=1;}else if(NOREAD.has(p)){err+='cat: '+x+': Permission denied\n';code=1;}
+   else if(!isFile(p)){err+='cat: '+x+': No such file or directory\n';code=1;}else out+=read(p);}return {out,err,code};},
+ head(a,stdin,tail){let n=10;const fs=[];for(let i=0;i<a.length;i++){if(a[i]==='-n'){n=parseInt(a[++i],10)||0;}else if(/^-\d+$/.test(a[i]))n=+a[i].slice(1);else if(/^-n\d+$/.test(a[i]))n=+a[i].slice(2);else fs.push(a[i]);}
+  const r=fs.length?CMDS.cat(fs,stdin):ok(stdin);const lines=r.out.split('\n');if(lines[lines.length-1]==='')lines.pop();const s=tail?lines.slice(-n||lines.length):lines.slice(0,n);
+  return {out:s.length?s.join('\n')+'\n':'',err:r.err.replace(/^cat/gm,tail?'tail':'head'),code:r.code};},
+ tail(a,stdin){return CMDS.head(a,stdin,true);},
+ grep(a,stdin){let i=false,v=false,n=false;const rest=[];for(const x of a){if(/^-[ivnr]+$/.test(x)){if(x.includes('i'))i=true;if(x.includes('v'))v=true;if(x.includes('n'))n=true;}else rest.push(x);}
+  if(!rest.length)return fail('Usage: grep [OPTION]... PATTERNS [FILE]...\n',2);let re;try{re=new RegExp(rest[0],i?'i':'');}catch(e){re=new RegExp(rest[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),i?'i':'');}
+  const fs=rest.slice(1);let out='',err='',hit=false;const src=fs.length?fs.map(f=>{const p=norm(f,CWD);if(isDir(p)){err+='grep: '+f+': Is a directory\n';return null;}if(!isFile(p)||NOREAD.has(p)){err+='grep: '+f+': '+(NOREAD.has(p)?'Permission denied':'No such file or directory')+'\n';return null;}return [f,read(p)];}).filter(Boolean):[['',stdin]];
+  for(const [f,t] of src){t.split('\n').forEach((l,k,arr)=>{if(k===arr.length-1&&l==='')return;if(re.test(l)!==v){hit=true;out+=(fs.length>1?f+':':'')+(n?(k+1)+':':'')+l+'\n';}});}
+  return {out,err,code:err&&!hit?2:hit?0:1};},
+ echo(a){let nl=true;if(a[0]==='-n'){nl=false;a=a.slice(1);}return ok(a.join(' ')+(nl?'\n':''));},
+ printf(a){if(!a.length)return fail('printf: usage: printf format [arguments]\n',2);let i=1;const s=a[0].replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/%[sd]/g,()=>a[i++]??'');return ok(s);},
+ pwd(){return ok(CWD+'\n');},whoami(){return ok('nobody\n');},id(){return ok('uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)\n');},
+ hostname(){return ok('ping-7f3a2c\n');},uname(a){return ok(a.includes('-a')?'Linux ping-7f3a2c 6.8.0-nxt #1 SMP x86_64 GNU/Linux\n':'Linux\n');},
+ date(){return ok(new Date().toUTCString().replace('GMT','UTC')+'\n');},true(){return ok();},false(){return fail('',1);},sleep(){return ok();},
+ env(){return ok(Object.entries({...ENV,PWD:CWD}).map(([k,v])=>k+'='+v).join('\n')+'\n');},printenv(a){return a.length?ok(a.map(k=>(k==='PWD'?CWD:ENV[k])??'').join('\n')+'\n'):CMDS.env();},
+ cd(a){const p=norm(a[0]||ENV.HOME,CWD);if(NOREAD.has(p))return fail('sh: 1: cd: can\'t cd to '+a[0]+'\n',2);if(!isDir(p))return fail('sh: 1: cd: can\'t cd to '+(a[0]||ENV.HOME)+'\n',2);CWD=p;return ok();},
+ wc(a,stdin){const fl=a.filter(x=>x.startsWith('-')).join('');const fs=a.filter(x=>!x.startsWith('-'));const r=fs.length?CMDS.cat(fs,stdin):ok(stdin);const t=r.out;
+  const l=(t.match(/\n/g)||[]).length,w=(t.match(/\S+/g)||[]).length,c=t.length;const parts=fl?[fl.includes('l')&&l,fl.includes('w')&&w,fl.includes('c')&&c].filter(x=>x!==false):[l,w,c];
+  return {out:parts.join(' ')+(fs.length===1?' '+fs[0]:'')+'\n',err:r.err.replace(/^cat/gm,'wc'),code:r.code};},
+ strings(a,stdin){return CMDS.cat(a,stdin);},
+ file(a){return ok(a.map(x=>{const p=norm(x,CWD);return x+': '+(isDir(p)?'directory':!isFile(p)?"cannot open `"+x+"' (No such file or directory)":x.endsWith('.sh')?'POSIX shell script, ASCII text executable':x.endsWith('.py')?'Python script, ASCII text executable':'ASCII text');}).join('\n')+'\n');},
+ base64(a,stdin){const d=a.includes('-d')||a.includes('--decode');const fs=a.filter(x=>!x.startsWith('-'));const r=fs.length?CMDS.cat(fs,stdin):ok(stdin);
+  try{return d?ok(atob(r.out.replace(/\s/g,''))):ok(btoa(r.out).replace(/(.{76})/g,'$1\n')+'\n');}catch(e){return fail('base64: invalid input\n',1);}},
+ rev(a,stdin){const r=a.length?CMDS.cat(a,stdin):ok(stdin);return ok(r.out.split('\n').map(l=>[...l].reverse().join('')).join('\n'));},
+ sort(a,stdin){const r=a.filter(x=>!x.startsWith('-')).length?CMDS.cat(a.filter(x=>!x.startsWith('-')),stdin):ok(stdin);const ls=r.out.split('\n').filter((x,i,arr)=>!(i===arr.length-1&&x===''));ls.sort();if(a.includes('-r'))ls.reverse();return ok(ls.length?ls.join('\n')+'\n':'');},
+ find(a){const start=norm(a.find(x=>!x.startsWith('-'))||'.',CWD);const shown=a.find(x=>!x.startsWith('-'))||'.';const nameI=a.indexOf('-name');const pat=nameI>=0?new RegExp('^'+a[nameI+1].replace(/[.+^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'.*').replace(/\?/g,'.')+'$'):null;
+  if(!isDir(start)&&!isFile(start))return fail("find: '"+shown+"': No such file or directory\n",1);let out='',err='';
+  const walk=(p,disp)=>{if(!pat||pat.test(p.split('/').pop()||'/'))out+=disp+'\n';if(isDir(p)){if(NOREAD.has(p)){err+="find: '"+disp+"': Permission denied\n";return;}for(const k of kids(p))walk(norm(k,p),(disp.endsWith('/')?disp:disp+'/')+k);}};
+  walk(start,shown);return {out,err,code:err?1:0};},
+ which(a){const known=['sh','ls','cat','ping','grep','head','tail','echo','python3','base64','find','id'];return ok(a.filter(x=>known.includes(x)).map(x=>(x==='python3'?'/usr/local/bin/':x==='ping'?'/usr/bin/':'/bin/')+x).join('\n')+'\n');},
+ sh(a,stdin){const ci=a.indexOf('-c');if(ci>=0)return runLine(a[ci+1]||'');if(!a.length)return runLine(stdin);const p=norm(a[0],CWD);if(!isFile(p))return fail('sh: 0: cannot open '+a[0]+': No such file\n',2);
+  if(p==='/srv/ping/ping.sh')return CMDS.ping(['-c','1',...(a[1]!=null?[a[1]]:[])]);return runLine(read(p));},
+ clear(){CLEAR=true;return ok();},
+ exit(){return ok();},
+ help(){return ok('this is /bin/sh (dash). try commands like ls, cat, pwd, id, grep, find.\n');},
+};
+CMDS.bash=CMDS.sh;CMDS.dir=CMDS.ls;CMDS.more=CMDS.cat;CMDS.less=CMDS.cat;CMDS.tac=(a,s)=>{const r=CMDS.cat(a,s);const l=r.out.split('\n');if(l[l.length-1]==='')l.pop();return {...r,out:l.reverse().join('\n')+(l.length?'\n':'')};};
+for(const c of ['rm','touch','mkdir','cp','mv','chmod','chown','tee','ln','rmdir'])CMDS[c]=a=>{const t=a.filter(x=>!x.startsWith('-')).pop()||'';return fail(c+": cannot "+(c==='touch'?'touch':c==='mkdir'?'create directory':'remove')+" '"+t+"': Read-only file system\n",1);};
+for(const c of ['curl','wget','nc','ncat','python','python3','perl','ruby','node','vim','vi','nano','sudo','su','apt','apt-get','pip','ssh','gcc','ifconfig','ip','netstat','ps','top','kill','nslookup','dig','xxd','hexdump','od','awk','sed','tr','cut','exiftool','strings2'])if(!CMDS[c])CMDS[c]=null;
+const BUSY={python3:'(python3 is installed, but this replay only simulates the shell. stick to shell commands.)\n'};
+let CLEAR=false;
+
+function runSimple(words,stdin,redir){const [cmd,...args]=words;if(!cmd)return ok(stdin);
+ let r;if(!(cmd in CMDS)||CMDS[cmd]===null){r=BUSY[cmd]?fail(BUSY[cmd],127):fail('sh: 1: '+cmd+': not found\n',127);}else r=CMDS[cmd](args,stdin||'');
+ if(redir.err2out){r={out:r.out+r.err,err:'',code:r.code};}
+ if(redir.errnull)r={...r,err:''};
+ if(redir.out){if(redir.out==='/dev/null')r={...r,out:''};else return fail('sh: 1: cannot create '+redir.out+': Read-only file system\n',2);}
+ return r;}
+
+function runLine(src){let toks;try{toks=tokenize(src);}catch(e){return fail('sh: 1: '+e.message+'\n',2);}
+ let out='',err='',code=0,skip=null;let pipe=[],words=[],redir={};let stdinFile=null;
+ const flushCmd=()=>{pipe.push({words,redir,stdinFile});words=[];redir={};stdinFile=null;};
+ const runPipe=()=>{if(!pipe.length)return;let data='';let r=ok();for(const c of pipe){let input=data;if(c.stdinFile){const p=norm(c.stdinFile,CWD);if(!isFile(p)){r=fail('sh: 1: cannot open '+c.stdinFile+': No such file\n',2);err+=r.err;data='';continue;}input=read(p);}
+   r=runSimple(c.words,input,c.redir);data=r.out;err+=r.err;}out+=data;code=r.code;LAST=code;pipe=[];};
+ for(let i=0;i<=toks.length;i++){const t=toks[i];
+  if(!t||t.op===';'||t.op==='&&'||t.op==='||'||t.op==='&'){if(words.length||Object.keys(redir).length)flushCmd();
+   if(skip===null)runPipe();else pipe=[];
+   skip=null;if(t&&t.op==='&&'&&code!==0)skip='&&';if(t&&t.op==='||'&&code===0)skip='||';
+   if(skip){// skip the next command (until ; or the opposite operator)
+    let j=i+1;for(;j<toks.length;j++){const o=toks[j].op;if(o===';'||o==='&'||(skip==='&&'&&o==='||')||(skip==='||'&&o==='&&'))break;}i=j-1;skip=null;}
+   continue;}
+  if(t.op==='|'){flushCmd();continue;}
+  if(t.op==='>'||t.op==='>>'){const f=toks[++i];redir.out=f&&f.w||'';continue;}
+  if(t.op==='2>'){const f=toks[++i];if(f&&f.w==='/dev/null')redir.errnull=true;else if(f&&f.w==='&1')redir.err2out=true;continue;}
+  if(t.op==='2>&'){const f=toks[++i];if(f&&f.w==='1')redir.err2out=true;continue;}
+  if(t.op==='<'){const f=toks[++i];stdinFile=f&&f.w;continue;}
+  if(t.g)words.push(...glob(t.w));else words.push(t.w);}
+ return {out,err,code};}
+
+function serverRun(host){host=String(host).slice(0,200);CWD='/srv/ping';LAST=0;ERRBUF='';CLEAR=false;
+ const r=runLine('ping -c 1 -W 1 '+host);const s=(r.out+ERRBUF+r.err).slice(-4000);return s||'(no output)';}
+
+const o=document.getElementById('o'),h=document.getElementById('h');
+document.getElementById('f').addEventListener('submit',async e=>{e.preventDefault();const v=h.value;if(!v.trim())return;h.value='';
+ o.textContent+='\n$ ping -c 1 '+v+'\n';await NXT.wait(120);const res=serverRun(v);if(CLEAR){o.textContent='';}else o.textContent+=res;o.scrollTop=o.scrollHeight;});
+</script></body></html>

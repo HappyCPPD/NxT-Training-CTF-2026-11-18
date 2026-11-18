@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Caesar Salad &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../../assets/chall.css"><script src="../../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../../">&larr; back to the board</a></div><main><h1>Caesar Salad</h1>
+<p>Julius Caesar slid into our DMs. Every letter is shifted along the alphabet by the same amount. Spin the decoder ring until the message makes sense.</p>
+<div class="blob" id="src">AkG{irav_ivqv_ebg13}</div>
+<div class="mini"><label for="shift">shift: <span id="n">0</span></label>
+<input type="range" id="shift" min="0" max="25" value="0">
+<div class="blob" id="out">AkG{irav_ivqv_ebg13}</div></div></main><script>const src=document.getElementById('src').textContent;
+document.getElementById('shift').addEventListener('input',e=>{const n=+e.target.value;document.getElementById('n').textContent=n;
+document.getElementById('out').textContent=src.replace(/[a-z]/gi,c=>{const b=c<='Z'?65:97;return String.fromCharCode((c.charCodeAt(0)-b+n)%26+b);});});</script></body></html>

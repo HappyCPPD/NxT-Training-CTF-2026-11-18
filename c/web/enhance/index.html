@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Zoom and Enhance &middot; NxT CTF</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap"><link rel="stylesheet" href="../../../assets/chall.css"><script src="../../../assets/nxt.js"></script></head><body><div class="top"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 7v14l-12 7L4 23V9z" fill="#08070a" stroke="#e6293f" stroke-width="2"/><path d="M11 22V10l10 12V10" fill="none" stroke="#f2f0f4" stroke-width="2.2" stroke-linejoin="round"/></svg> NxT CTF <a href="../../../">&larr; back to the board</a></div><main><h1>Zoom and Enhance</h1><p>Our agent snapped this mysterious photo. On every crime show someone yells <i>&ldquo;zoom in... ENHANCE!&rdquo;</i>. Something is written in the shadows, but it's <i>really</i> faint. Smashing the button alone won't save you.</p>
+<div class="enh" id="box"><canvas id="cv" aria-label="mysterious photo"></canvas></div><p class="tip">click the photo to zoom &middot; or download it from the challenge and use your own tools</p>
+<div class="mini"><label for="lo">shadows <span id="bv">0</span></label><input type="range" id="lo" min="0" max="240" value="0">
+<label for="hi">highlights <span id="wv">255</span></label><input type="range" id="hi" min="2" max="255" value="255">
+<div class="row"><button id="go">ENHANCE!</button><button id="reset">reset</button></div></div></main><script>const cv=document.getElementById('cv'),ctx=cv.getContext('2d',{willReadFrequently:true}),img=new Image();let base=null;
+img.onload=()=>{cv.width=img.naturalWidth;cv.height=img.naturalHeight;ctx.drawImage(img,0,0);base=ctx.getImageData(0,0,cv.width,cv.height);};
+img.src='../static/enhance.png';
+const lo=document.getElementById('lo'),hi=document.getElementById('hi');
+function apply(){if(!base)return;let a=+lo.value,b=+hi.value;if(b<=a)b=a+1;document.getElementById('bv').textContent=a;document.getElementById('wv').textContent=b;
+const out=new ImageData(new Uint8ClampedArray(base.data),base.width,base.height),o=out.data,s=255/(b-a);for(let k=0;k<o.length;k+=4){o[k]=(o[k]-a)*s;o[k+1]=(o[k+1]-a)*s;o[k+2]=(o[k+2]-a)*s;}ctx.putImageData(out,0,0);}
+lo.oninput=hi.oninput=apply;
+document.getElementById('go').onclick=()=>{const f=+lo.value+30;hi.value=+hi.value<=f?255:Math.max(Math.round(+hi.value*.7),f);apply();const bx=document.getElementById('box');bx.classList.remove('zap');void bx.offsetWidth;bx.classList.add('zap');};
+document.getElementById('reset').onclick=()=>{lo.value=0;hi.value=255;apply();};
+cv.onclick=()=>document.getElementById('box').classList.toggle('zoomed');</script></body></html>
